@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpiceSniff+</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #388E3C;
+            --primary-light: #C8E6C9;
+            --secondary: #FF9800;
+            --secondary-dark: #F57C00;
+            --accent: #795548;
+            --text-primary: #212121;
+            --text-secondary: #757575;
+            --background: #F9F9F9;
+            --card-bg: #FFFFFF;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            width: 100%;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 16px 0;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .logo i {
+            color: var(--secondary);
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.4s ease;
+            flex: 1;
+        }
+
+        .active {
+            display: block;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        h1, h2, h3 {
+            color: var(--primary-dark);
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--secondary-dark);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-large {
+            padding: 16px 32px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .dashboard-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-top: 32px;
+        }
+
+        .option-card {
+            background: linear-gradient(135deg, var(--primary-light), #fff);
+            padding: 32px;
+            border-radius: var(--radius);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid var(--primary-light);
+        }
+
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+        }
+
+        .option-card i {
+            font-size: 48px;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+
+        .qr-code {
+            display: flex;
+            justify-content: center;
+            margin: 24px 0;
+        }
+
+        .data-card {
+            margin-bottom: 24px;
+            padding: 20px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .home-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            max-width: 400px;
+            margin: 40px auto;
+        }
+
+        .scanner-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        #qr-reader {
+            width: 100%;
+            border: 2px solid var(--primary);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .spice-details {
+            margin-top: 24px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .back-button {
+            margin-bottom: 20px;
+        }
+
+        footer {
+            background-color: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .home-buttons {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-pepper-hot"></i>
+                <span>SpiceSniff+</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Home Page -->
+        <section id="home-page" class="page active">
+            <div class="card">
+                <h1>Welcome to SpiceSniff+</h1>
+                <p>Track your spice quality from farm to consumer with our blockchain-powered solution.</p>
+                
+                <div class="home-buttons">
+                    <button class="btn btn-large" onclick="showPage('farmer-login-page')">
+                        <i class="fas fa-user-tie"></i> Farmer Login
+                    </button>
+                    <button class="btn btn-secondary btn-large" onclick="showPage('consumer-dashboard-page')">
+                        <i class="fas fa-shopping-bag"></i> Consumer Dashboard
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Farmer Login Page -->
+        <section id="farmer-login-page" class="page">
+            <button class="btn btn-outline back-button" onclick="showPage('home-page')">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            
+            <div class="card">
+                <h2>Farmer Login</h2>
+                
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="Enter your email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter your password">
+                </div>
+                
+                <button class="btn" onclick="loginFarmer()">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+                
+                <p style="margin-top: 20px;">
+                    Don't have an account? 
+                    <a href="#" onclick="showPage('farmer-signup-page')">Sign Up</a>
+                </p>
+            </div>
+        </section>
+
+        <!-- Farmer Signup Page -->
+        <section id="farmer-signup-page" class="page">
+            <button class="btn btn-outline back-button" onclick="showPage('farmer-login-page')">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            
+            <div class="card">
+                <h2>Farmer Sign Up</h2>
+                
+                <div class="form-group">
+                    <label for="signup-email">Email</label>
+                    <input type="email" id="signup-email" placeholder="Enter your email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="signup-farmname">Farm Name</label>
+                    <input type="text" id="signup-farmname" placeholder="Enter your farm name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" placeholder="Create a password (min. 6 characters)">
+                </div>
+                
+                <button class="btn" onclick="signupFarmer()">
+                    <i class="fas fa-user-plus"></i> Sign Up
+                </button>
+            </div>
+        </section>
+
+        <!-- Farmer Dashboard -->
+        <section id="farmer-dashboard-page" class="page">
+            <div class="card">
+                <h2>Farmer Dashboard</h2>
+                <p>Welcome back, <span id="farmer-name">Farmer</span>!</p>
+                
+                <div class="dashboard-options">
+                    <div class="option-card" onclick="showPage('add-data-page')">
+                        <i class="fas fa-database"></i>
+                        <h3>Add Data</h3>
+                        <p>Add new spice and sensor data</p>
+                    </div>
+                    
+                    <div class="option-card" onclick="showPage('view-data-page')">
+                        <i class="fas fa-history"></i>
+                        <h3>View Data</h3>
+                        <p>View previously uploaded data</p>
+                    </div>
+                </div>
+                
+                <button class="btn btn-outline" onclick="logoutFarmer()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </section>
+
+        <!-- Add Data Page -->
+        <section id="add-data-page" class="page">
+            <button class="btn btn-outline back-button" onclick="showPage('farmer-dashboard-page')">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </button>
+            
+            <div class="card">
+                <h2>Add Spice Data</h2>
+                
+                <div class="form-group">
+                    <label for="spice-type">Spice Type</label>
+                    <input type="text" id="spice-type" placeholder="e.g., Turmeric, Cinnamon" value="Turmeric">
+                </div>
+                
+                <div class="form-group">
+                    <label for="batch-id">Batch ID</label>
+                    <input type="text" id="batch-id" placeholder="Enter batch ID" value="TURM2025-01">
+                </div>
+                
+                <button class="btn" onclick="getSensorDataFromBackend()">
+                    <i class="fas fa-cogs"></i> Get Sensor Data from Backend
+                </button>
+                
+                <div id="sensor-data" class="data-card" style="display: none;">
+                    <h3>Sensor Data</h3>
+                    <div id="sensor-data-content"></div>
+                    
+                    <div class="qr-code">
+                        <canvas id="qrcode-canvas"></canvas>
+                    </div>
+                    
+                    <button class="btn" onclick="saveData()">
+                        <i class="fas fa-save"></i> Save Data & Generate QR
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="printQRCode()">
+                        <i class="fas fa-print"></i> Print QR Code
+                    </button>
+                </div>
+                
+                <div id="loading-sensor" class="loading" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <span style="margin-left: 10px;">Fetching sensor data from backend...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- View Data Page -->
+        <section id="view-data-page" class="page">
+            <button class="btn btn-outline back-button" onclick="showPage('farmer-dashboard-page')">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </button>
+            
+            <div class="card">
+                <h2>Previous Uploads</h2>
+                
+                <div class="data-grid" id="previous-uploads">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Consumer Dashboard -->
+        <section id="consumer-dashboard-page" class="page">
+            <button class="btn btn-outline back-button" onclick="showPage('home-page')">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            
+            <div class="card">
+                <h2>Consumer Dashboard</h2>
+                
+                <button class="btn btn-large" onclick="showPage('scan-product-page')">
+                    <i class="fas fa-qrcode"></i> Scan Product
+                </button>
+                
+                <div id="consumer-data" style="display: none;">
+                    <div class="spice-details card">
+                        <h3>Spice Details</h3>
+                        <div id="spice-details-content"></div>
+                        
+                        <button class="btn btn-secondary" onclick="printDetails()">
+                            <i class="fas fa-print"></i> Print Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Scan Product Page -->
+        <section id="scan-product-page" class="page">
+            <button class="btn btn-outline back-button" onclick="showPage('consumer-dashboard-page')">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            
+            <div class="card">
+                <h2>Scan Product QR Code</h2>
+                
+                <div class="scanner-container">
+                    <div id="qr-reader"></div>
+                </div>
+                
+                <div id="scan-result"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>SpiceSniff+ &copy; 2023 - Blockchain-powered spice traceability</p>
+        </div>
+    </footer>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDDpN0DKlwhQ6P2-0RA2cx5BJnh_UAH-Gw",
+            authDomain: "spicesniff-plus.firebaseapp.com",
+            projectId: "spicesniff-plus",
+            storageBucket: "spicesniff-plus.firebasestorage.app",
+            messagingSenderId: "540246187315",
+            appId: "1:540246187315:web:8002c380d37806a06e3246",
+            measurementId: "G-Q06PJSDW0T"
+        };
+        
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        // Page navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            
+            // Special cases
+            if (pageId === 'view-data-page') {
+                loadPreviousUploads();
+            } else if (pageId === 'scan-product-page') {
+                initQRScanner();
+            }
+        }
+        
+        // Authentication functions
+        function loginFarmer() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (email && password) {
+                auth.signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        // Signed in 
+                        const user = userCredential.user;
+                        document.getElementById('farmer-name').textContent = user.email;
+                        showPage('farmer-dashboard-page');
+                    })
+                    .catch((error) => {
+                        alert('Login error: ' + error.message);
+                    });
+            } else {
+                alert('Please enter email and password');
+            }
+        }
+        
+        function signupFarmer() {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const farmName = document.getElementById('signup-farmname').value;
+            
+            if (email && password && farmName) {
+                if (password.length < 6) {
+                    alert('Password should be at least 6 characters');
+                    return;
+                }
+                
+                auth.createUserWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        // Signed up 
+                        const user = userCredential.user;
+                        
+                        // Save additional user data to Firestore
+                        return db.collection('farmers').doc(user.uid).set({
+                            email: email,
+                            farmName: farmName,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    })
+                    .then(() => {
+                        document.getElementById('farmer-name').textContent = email;
+                        showPage('farmer-dashboard-page');
+                    })
+                    .catch((error) => {
+                        alert('Signup error: ' + error.message);
+                    });
+            } else {
+                alert('Please fill all fields');
+            }
+        }
+        
+        function logoutFarmer() {
+            auth.signOut().then(() => {
+                showPage('home-page');
+            });
+        }
+        
+        // Check auth state to keep user logged in
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                document.getElementById('farmer-name').textContent = user.email;
+                // Don't automatically redirect to dashboard to avoid breaking navigation
+            }
+        });
+        
+        // Get sensor data from Node.js backend
+        function getSensorDataFromBackend() {
+            const spiceType = document.getElementById('spice-type').value;
+            const batchId = document.getElementById('batch-id').value;
+            
+            // Show loading indicator
+            document.getElementById('loading-sensor').style.display = 'flex';
+            
+            // In a real implementation, you would call your Node.js backend API
+            // Example: fetch('https://your-backend.com/api/sensor-data')
+            
+            // Simulating API call with timeout
+            setTimeout(() => {
+                // This would be the response from your backend
+                const sensorData = {
+                    spice: spiceType,
+                    batch_id: batchId,
+                    farm: {
+                        name: "Farm A",
+                        location: {
+                            district: "Idukki",
+                            latitude: 9.918,
+                            longitude: 77.102
+                        }
+                    },
+                    device_id: "SPICESNIFF-UNIT-07",
+                    timestamp: new Date().toISOString(),
+                    sensor_readings: {
+                        MQ135_air: Math.floor(Math.random() * 100) + 400,
+                        MQ3_alcohol: Math.floor(Math.random() * 100),
+                        BME688_voc: Math.floor(Math.random() * 200),
+                        SGP30_eco2: Math.floor(Math.random() * 50),
+                        DHT22_temp: Math.floor(Math.random() * 10) + 25,
+                        DHT22_humid: Math.floor(Math.random() * 30) + 50
+                    },
+                    derived_metrics: {
+                        purity_score: Math.floor(Math.random() * 10) + 85,
+                        confidence: Math.floor(Math.random() * 10) + 80,
+                        grade: ["A", "B", "C"][Math.floor(Math.random() * 3)]
+                    }
+                };
+                
+                // Hide loading indicator
+                document.getElementById('loading-sensor').style.display = 'none';
+                
+                // Display the sensor data
+                document.getElementById('sensor-data-content').innerHTML = `
+                    <div class="detail-row"><span>Spice:</span> <span>${sensorData.spice}</span></div>
+                    <div class="detail-row"><span>Batch ID:</span> <span>${sensorData.batch_id}</span></div>
+                    <div class="detail-row"><span>Farm:</span> <span>${sensorData.farm.name}</span></div>
+                    <div class="detail-row"><span>Temperature:</span> <span>${sensorData.sensor_readings.DHT22_temp}°C</span></div>
+                    <div class="detail-row"><span>Humidity:</span> <span>${sensorData.sensor_readings.DHT22_humid}%</span></div>
+                    <div class="detail-row"><span>Purity Score:</span> <span>${sensorData.derived_metrics.purity_score}%</span></div>
+                    <div class="detail-row"><span>Grade:</span> <span>${sensorData.derived_metrics.grade}</span></div>
+                `;
+                
+                document.getElementById('sensor-data').style.display = 'block';
+                
+                // Generate QR Code
+                QRCode.toCanvas(document.getElementById('qrcode-canvas'), 
+                    JSON.stringify(sensorData), 
+                    { width: 200 }, 
+                    function(error) {
+                        if (error) console.error(error);
+                    }
+                );
+                
+                // Store the sensor data for saving later
+                window.currentSensorData = sensorData;
+            }, 1500); // Simulate network delay
+        }
+        
+        // Save data to Firebase
+        function saveData() {
+            const user = auth.currentUser;
+            if (!user) {
+                alert('Please log in first');
+                showPage('farmer-login-page');
+                return;
+            }
+
+            if (!window.currentSensorData) {
+                alert('No sensor data to save. Please generate data first.');
+                return;
+            }
+
+            // Generate a unique ID for this batch
+            const batchRef = db.collection('spiceBatches').doc();
+            
+            // Save to Firestore
+            batchRef.set({
+                ...window.currentSensorData,
+                farmerId: user.uid,
+                farmerEmail: user.email,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                alert('Data saved successfully with ID: ' + batchRef.id);
+                showPage('farmer-dashboard-page');
+            })
+            .catch((error) => {
+                alert('Error saving data: ' + error.message);
+            });
+        }
+        
+        // Print QR Code
+        function printQRCode() {
+            window.print();
+        }
+        
+        // Load previous uploads from Firebase
+        function loadPreviousUploads() {
+            const user = auth.currentUser;
+            if (!user) {
+                document.getElementById('previous-uploads').innerHTML = '<p>Please log in to view your data</p>';
+                return;
+            }
+
+            // Get data from Firestore
+            db.collection('spiceBatches')
+                .where('farmerId', '==', user.uid)
+                .orderBy('createdAt', 'desc')
+                .get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        document.getElementById('previous-uploads').innerHTML = '<p>No previous uploads found.</p>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        html += `
+                            <div class="data-card">
+                                <h3>${data.spice} - ${data.batch_id}</h3>
+                                <div class="detail-row"><span>Date:</span> <span>${new Date(data.timestamp).toLocaleDateString()}</span></div>
+                                <div class="detail-row"><span>Purity Score:</span> <span>${data.derived_metrics.purity_score}%</span></div>
+                                <div class="detail-row"><span>Grade:</span> <span>${data.derived_metrics.grade}</span></div>
+                                <div class="qr-code">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${doc.id}" alt="QR Code">
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('previous-uploads').innerHTML = html;
+                })
+                .catch((error) => {
+                    document.getElementById('previous-uploads').innerHTML = '<p>Error loading data: ' + error.message + '</p>';
+                });
+        }
+        
+        // Initialize QR Scanner with real data fetching
+        function initQRScanner() {
+            document.getElementById('qr-reader').innerHTML = '';
+            document.getElementById('scan-result').innerHTML = '';
+            
+            const html5QrcodeScanner = new Html5QrcodeScanner(
+                "qr-reader", { fps: 10, qrbox: 250 });
+            
+            html5QrcodeScanner.render((decodedText) => {
+                // decodedText should be the document ID from Firestore
+                db.collection('spiceBatches').doc(decodedText).get()
+                    .then((doc) => {
+                        if (!doc.exists) {
+                            throw new Error('No product found with that ID');
+                        }
+                        
+                        const data = doc.data();
+                        document.getElementById('scan-result').innerHTML = `
+                            <div class="spice-details card">
+                                <h3>Product Scanned Successfully!</h3>
+                                <div class="detail-row"><span>Spice:</span> <span>${data.spice}</span></div>
+                                <div class="detail-row"><span>Batch ID:</span> <span>${data.batch_id}</span></div>
+                                <div class="detail-row"><span>Farm:</span> <span>${data.farm.name}</span></div>
+                                <div class="detail-row"><span>Location:</span> <span>${data.farm.location.district}</span></div>
+                                <div class="detail-row"><span>Temperature:</span> <span>${data.sensor_readings.DHT22_temp}°C</span></div>
+                                <div class="detail-row"><span>Humidity:</span> <span>${data.sensor_readings.DHT22_humid}%</span></div>
+                                <div class="detail-row"><span>Purity Score:</span> <span>${data.derived_metrics.purity_score}%</span></div>
+                                <div class="detail-row"><span>Grade:</span> <span>${data.derived_metrics.grade}</span></div>
+                                <div class="detail-row"><span>Timestamp:</span> <span>${new Date(data.timestamp).toLocaleString()}</span></div>
+                            </div>
+                            <button class="btn" onclick="showPage('consumer-dashboard-page')">
+                                <i class="fas fa-check"></i> Continue
+                            </button>
+                        `;
+                        
+                        html5QrcodeScanner.clear();
+                    })
+                    .catch((error) => {
+                        document.getElementById('scan-result').innerHTML = `
+                            <div class="card">
+                                <h3>Error</h3>
+                                <p>${error.message}</p>
+                            </div>
+                        `;
+                        html5QrcodeScanner.clear();
+                    });
+            });
+        }
+        
+        // Print details
+        function printDetails() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
