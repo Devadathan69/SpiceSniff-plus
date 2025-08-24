@@ -1,0 +1,2023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpiceSniff+</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #388E3C;
+            --primary-light: #C8E6C9;
+            --secondary: #FF9800;
+            --secondary-dark: #F57C00;
+            --accent: #795548;
+            --text-primary: #212121;
+            --text-secondary: #757575;
+            --background: #F9F9F9;
+            --card-bg: #FFFFFF;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            width: 100%;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 16px 0;
+            text-align: center;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .logo i {
+            color: var(--secondary);
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.4s ease;
+            flex: 1;
+            width: 100%;
+        }
+
+        .active {
+            display: block;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        h1, h2, h3 {
+            color: var(--primary-dark);
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--secondary-dark);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-large {
+            padding: 16px 32px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .dashboard-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-top: 32px;
+        }
+
+        .option-card {
+            background: linear-gradient(135deg, var(--primary-light), #fff);
+            padding: 32px;
+            border-radius: var(--radius);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid var(--primary-light);
+        }
+
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+        }
+
+        .option-card i {
+            font-size: 48px;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+
+        .qr-code {
+            display: flex;
+            justify-content: center;
+            margin: 24px 0;
+        }
+
+        .data-card {
+            margin-bottom: 24px;
+            padding: 20px;
+            border-left: 5px solid var(--primary);
+        }
+        
+        .previous-upload-card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            border-left: 5px solid var(--primary);
+            margin-bottom: 15px;
+        }
+        
+        .previous-upload-card h3 {
+            margin-bottom: 10px;
+        }
+
+        .previous-upload-card .detail-row {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 8px 0;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .home-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            max-width: 400px;
+            margin: 40px auto;
+        }
+
+        .scanner-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        #qr-reader {
+            width: 100%;
+            border: 2px solid var(--primary);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .spice-details {
+            margin-top: 24px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .back-button {
+            margin-bottom: 20px;
+            width: auto;
+        }
+
+        footer {
+            background-color: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        .blockchain-info {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: var(--radius);
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+
+        .blockchain-field {
+            display: flex;
+            margin-bottom: 8px;
+        }
+
+        .blockchain-label {
+            font-weight: bold;
+            min-width: 150px;
+        }
+
+        /* Camera permission styling */
+        .camera-permission {
+            text-align: center;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+        }
+
+        .camera-permission i {
+            font-size: 48px;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+
+        /* JSON data display */
+        .json-data {
+            background-color: #f9f9f9;
+            border-radius: var(--radius);
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .json-data pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        /* New sensor styles */
+        .sensor-status-card {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .sensor-offline { color: #e74c3c; }
+        .sensor-warming { color: #f39c12; }
+        .sensor-online { color: #27ae60; }
+        
+        .reading-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .grade-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .grade-a { background: #27ae60; color: white; }
+        .grade-b { background: #2ecc71; color: white; }
+        .grade-c { background: #f39c12; color: white; }
+        .grade-d { background: #e67e22; color: white; }
+        .grade-f { background: #e74c3c; color: white; }
+        .grade-n { background: #95a5a6; color: white; }
+        
+        .primary-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .primary-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .card {
+                padding: 16px;
+            }
+            
+            .dashboard-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .home-buttons {
+                max-width: 100%;
+            }
+            
+            .blockchain-field {
+                flex-direction: column;
+            }
+            
+            .blockchain-label {
+                min-width: unset;
+                margin-bottom: 4px;
+            }
+            
+            .option-card {
+                padding: 20px;
+            }
+            
+            .option-card i {
+                font-size: 36px;
+            }
+            
+            .btn {
+                padding: 14px 20px;
+            }
+            
+            /* Optimize scanner for mobile */
+            #qr-reader {
+                height: 300px;
+            }
+            
+            /* Consumer dashboard specific */
+            .consumer-view .card {
+                margin-bottom: 16px;
+            }
+            
+            .consumer-view .btn-large {
+                padding: 18px 24px;
+                font-size: 16px;
+            }
+        }
+
+        /* Very small devices */
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 22px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            h2 {
+                font-size: 20px;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+                gap: 4px;
+            }
+            
+            #qr-reader {
+                height: 250px;
+            }
+        }
+
+        /* Desktop-specific optimizations */
+        @media (min-width: 769px) {
+            .producer-view {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-pepper-hot"></i>
+                <span>SpiceSniff+</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Home Page -->
+        <section id="home-page" class="page active">
+            <div class="card">
+                <h1>Welcome to SpiceSniff+</h1>
+                <p>Track your spice quality from farm to consumer with our blockchain-powered solution.</p>
+                
+                <div class="home-buttons">
+                    <button class="btn btn-large" onclick="showPage('farmer-login-page')">
+                        <i class="fas fa-user-tie"></i> Farmer Login
+                    </button>
+                    <button class="btn btn-secondary btn-large" onclick="showPage('consumer-dashboard-page')">
+                        <i class="fas fa-shopping-bag"></i> Consumer Dashboard
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Farmer Login Page -->
+        <section id="farmer-login-page" class="page producer-view">
+            <button class="btn btn-outline back-button" onclick="showPage('home-page')">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            
+            <div class="card">
+                <h2>Farmer Login</h2>
+                
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="Enter your email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter your password">
+                </div>
+                
+                <button class="btn" onclick="loginFarmer()">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+                
+                <p style="margin-top: 20px;">
+                    Don't have an account? 
+                    <a href="#" onclick="showPage('farmer-signup-page')">Sign Up</a>
+                </p>
+            </div>
+        </section>
+
+        <!-- Farmer Signup Page -->
+        <section id="farmer-signup-page" class="page producer-view">
+            <button class="btn btn-outline back-button" onclick="showPage('farmer-login-page')">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            
+            <div class="card">
+                <h2>Farmer Sign Up</h2>
+                
+                <div class="form-group">
+                    <label for="signup-email">Email</label>
+                    <input type="email" id="signup-email" placeholder="Enter your email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="signup-farmname">Farm Name</label>
+                    <input type="text" id="signup-farmname" placeholder="Enter your farm name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" placeholder="Create a password (min. 6 characters)">
+                </div>
+                
+                <button class="btn" onclick="signupFarmer()">
+                    <i class="fas fa-user-plus"></i> Sign Up
+                </button>
+            </div>
+        </section>
+
+        <!-- Farmer Dashboard -->
+        <section id="farmer-dashboard-page" class="page producer-view">
+    <button class="btn btn-outline back-button" onclick="showPage('home-page')">
+        <i class="fas fa-arrow-left"></i> Back
+    </button>
+    
+    <div class="card">
+        <h2>Farmer Dashboard</h2>
+        <p>Welcome back, <span id="farmer-name">Farmer</span>!</p>
+        
+        <!-- Remove the display: none style from the farmer-dashboard div -->
+        <div id="farmer-dashboard">
+            <div class="sensor-status-card">
+                <h3>🌡️ Live Sensor Data</h3>
+                <div id="sensor-status" class="sensor-offline">
+                    <p>Waiting for sensor data...</p>
+                </div>
+                
+                <div id="sensor-readings" style="display: none;">
+                    <div class="reading-row">
+                        <span>Purity:</span>
+                        <span id="purity-value">--</span>
+                        <span id="purity-grade" class="grade-badge">-</span>
+                    </div>
+                    <div class="reading-row">
+                        <span>Temperature:</span>
+                        <span id="temp-value">-- °C</span>
+                    </div>
+                    <div class="reading-row">
+                        <span>Humidity:</span>
+                        <span id="humidity-value">-- %</span>
+                    </div>
+                    <div class="reading-row">
+                        <span>Gas:</span>
+                        <span id="gas-value">-- kΩ</span>
+                    </div>
+                    <div class="reading-row">
+                        <span>MQ3:</span>
+                        <span id="mq3-value">--</span>
+                    </div>
+                    <div class="reading-row">
+                        <span>MQ135:</span>
+                        <span id="mq135-value">--</span>
+                    </div>
+                </div>
+                
+                <button id="commit-sensor-btn" class="primary-button" disabled>
+                    📤 Add Current Reading to Blockchain
+                </button>
+            </div>
+        </div>
+        
+        <div class="dashboard-options">
+            <div class="option-card" onclick="showPage('add-data-page')">
+                <i class="fas fa-database"></i>
+                <h3>Add Data</h3>
+                <p>Add new spice and sensor data</p>
+            </div>
+            
+            <div class="option-card" onclick="showPage('view-data-page')">
+                <i class="fas fa-history"></i>
+                <h3>View Data</h3>
+                <p>View previously uploaded data</p>
+            </div>
+        </div>
+        
+        <button class="btn btn-outline" onclick="logoutFarmer()">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+    </div>
+</section>
+
+        <!-- Add Data Page -->
+        <section id="add-data-page" class="page producer-view">
+            <button class="btn btn-outline back-button" onclick="showPage('farmer-dashboard-page')">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </button>
+            
+            <div class="card">
+                <h2>Add Spice Data</h2>
+                
+                <div class="form-group">
+                    <label for="spice-type">Spice Type</label>
+                    <input type="text" id="spice-type" placeholder="e.g., Turmeric, Cinnamon" value="Turmeric">
+                </div>
+                
+                <div class="form-group">
+                    <label for="batch-id">Batch ID</label>
+                    <input type="text" id="batch-id" placeholder="Enter batch ID" value="TURM2025-01">
+                </div>
+                
+                <button class="btn" onclick="getSensorDataFromBackend()">
+                    <i class="fas fa-cogs"></i> Get Sensor Data from Backend
+                </button>
+                
+                <div id="sensor-data" class="data-card" style="display: none;">
+                    <h3>Sensor Data</h3>
+                    <div id="sensor-data-content"></div>
+                    
+                    <div class="qr-code">
+                        <canvas id="qrcode-canvas"></canvas>
+                    </div>
+                    
+                    <button class="btn" onclick="saveDataToBlockchain()">
+                        <i class="fas fa-link"></i> Save to Blockchain
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="printQRCode()">
+                        <i class="fas fa-print"></i> Print QR Code
+                    </button>
+                </div>
+                
+                <div id="loading-sensor" class="loading" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <span style="margin-left: 10px;">Fetching sensor data from backend...</span>
+                </div>
+
+                <div id="blockchain-status" class="blockchain-info" style="display: none;">
+                    <h4>Blockchain Transaction Status</h4>
+                    <div class="blockchain-field">
+                        <span class="blockchain-label">IPFS CID:</span>
+                        <span id="ipfs-cid">Pending...</span>
+                    </div>
+                    <div class="blockchain-field">
+                        <span class="blockchain-label">Transaction Hash:</span>
+                        <span id="transaction-hash">Pending...</span>
+                    </div>
+                    <div class="blockchain-field">
+                        <span class="blockchain-label">Block Number:</span>
+                        <span id="block-number">Pending...</span>
+                    </div>
+                    <div class="blockchain-field">
+                        <span class="blockchain-label">Status:</span>
+                        <span id="transaction-status">Not started</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- View Data Page -->
+        <section id="view-data-page" class="page producer-view">
+            <button class="btn btn-outline back-button" onclick="showPage('farmer-dashboard-page')">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </button>
+            
+            <div class="card">
+                <h2>Previous Uploads</h2>
+                
+                <div id="previous-uploads">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Consumer Dashboard -->
+        <section id="consumer-dashboard-page" class="page consumer-view">
+            <button class="btn btn-outline back-button" onclick="showPage('home-page')">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            
+            <div class="card">
+                <h2>Consumer Dashboard</h2>
+                <p>Scan a product's QR code to verify its authenticity and view detailed information.</p>
+                
+                <button class="btn btn-large" onclick="initCameraForScanning()">
+                    <i class="fas fa-qrcode"></i> Scan Product QR Code
+                </button>
+                
+                <div id="camera-permission" class="camera-permission" style="display: none;">
+                    <i class="fas fa-camera"></i>
+                    <h3>Camera Access Required</h3>
+                    <p>Please allow camera access to scan QR codes.</p>
+                    <button class="btn" onclick="initCameraForScanning()">
+                        <i class="fas fa-camera"></i> Allow Camera Access
+                    </button>
+                </div>
+                
+                <div id="consumer-data" style="display: none;">
+                    <div class="spice-details card">
+                        <h3>Spice Details</h3>
+                        <div id="spice-details-content"></div>
+                        
+                        <button class="btn btn-secondary" onclick="printDetails()">
+                            <i class="fas fa-print"></i> Print Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Scan Product Page -->
+<section id="scan-product-page" class="page consumer-view">
+  <button class="btn btn-outline back-button" onclick="showPage('consumer-dashboard-page')">
+    <i class="fas fa-arrow-left"></i> Back
+  </button>
+  
+  <div class="card">
+    <h2>Scan Product QR Code</h2>
+    <p>Position the QR code within the frame to scan</p>
+    
+    <div class="scanner-container">
+      <div id="qr-reader"></div>
+    </div>
+    
+    <div id="scan-result"></div>
+    
+    <!-- Camera help section -->
+    <div class="card" style="margin-top: 20px; background-color: #e7f3ff; display: none;" id="camera-help">
+      <h3><i class="fas fa-info-circle"></i> Camera Tips</h3>
+      <ul>
+        <li>Ensure good lighting on the QR code</li>
+        <li>Hold your device steady</li>
+        <li>Move closer if the QR code is small</li>
+        <li>Tap the torch icon for low light conditions</li>
+      </ul>
+    </div>
+  </div>
+</section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>SpiceSniff+ &copy; 2025 - Blockchain-powered spice traceability by Team Arrakis </p>
+        </div>
+    </footer>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+            let socket;
+        let latestReading = null;
+
+        // Add this global variable at the top of your script section
+        window.socketInitialized = false;
+        window.latestReading = null;
+
+
+        // Initialize Socket.IO connection
+        // Update the initSensorConnection function to store the latest reading
+function initSensorConnection() {
+    try {
+        socket = io();
+        
+        socket.on('connect', () => {
+            console.log('🔌 Connected to sensor stream');
+            updateSensorStatus('online', 'Connected to sensor');
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('🔌 Disconnected from sensor stream');
+            updateSensorStatus('offline', 'Disconnected from sensor');
+        });
+        
+        socket.on('sensorReading', (data) => {
+            console.log('Received sensor data:', data);
+            window.latestReading = data;
+            updateSensorDisplay(data);
+        });
+        
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+            updateSensorStatus('offline', 'Connection error: ' + error.message);
+        });
+    } catch (error) {
+        console.error('Failed to initialize sensor connection:', error);
+        updateSensorStatus('offline', 'Failed to connect to sensor');
+    }
+}
+
+        function updateSensorStatus(status, message) {
+            const statusDiv = document.getElementById('sensor-status');
+            const readingsDiv = document.getElementById('sensor-readings');
+            
+            statusDiv.className = `sensor-${status}`;
+            statusDiv.innerHTML = `<p>${message}</p>`;
+            
+            if (status === 'online' && latestReading?.available) {
+                readingsDiv.style.display = 'block';
+            } else {
+                readingsDiv.style.display = 'none';
+            }
+        }
+
+        // Fix the live sensor data display on the farmer dashboard
+// Update the updateSensorDisplay function
+function updateSensorDisplay(data) {
+    const commitBtn = document.getElementById('commit-sensor-btn');
+    const readingsDiv = document.getElementById('sensor-readings');
+    
+    if (!data || !data.available) {
+        updateSensorStatus('warming', data && data.phase ? `Sensor warming up (${data.phase})` : 'Waiting for sensor data');
+        commitBtn.disabled = true;
+        readingsDiv.style.display = 'none';
+        return;
+    }
+    
+    // Extract values from different possible data formats
+    const purityValue = data.purity || (data.derived_metrics && data.derived_metrics.purity_score) || 0;
+    const purityDisplay = purityValue < 0.05 ? 'No spice detected' : purityValue.toFixed(4);
+    const grade = purityValue < 0.05 ? 'N/A' : (data.grade || (data.derived_metrics && data.derived_metrics.grade) || 'N/A');
+    
+    const tempValue = data.temp || data.temperature || (data.sensor_readings && data.sensor_readings.temp) || 0;
+    const humidityValue = data.rel_hum || data.humidity || (data.sensor_readings && data.sensor_readings.humid) || 0;
+    const gasValue = data.gas_kohm || (data.sensor_readings && data.sensor_readings.BME688_voc) || 0;
+    const mq3Value = data.mq3_rsr0 || (data.sensor_readings && data.sensor_readings.MQ3_alcohol) || 0;
+    const mq135Value = data.mq135_rsr0 || (data.sensor_readings && data.sensor_readings.MQ135_air) || 0;
+    
+    // Update all readings
+    document.getElementById('purity-value').textContent = purityDisplay;
+    document.getElementById('purity-grade').textContent = grade;
+    document.getElementById('temp-value').textContent = `${tempValue.toFixed(2)} °C`;
+    document.getElementById('humidity-value').textContent = `${humidityValue.toFixed(2)} %`;
+    document.getElementById('gas-value').textContent = `${gasValue.toFixed(2)} kΩ`;
+    document.getElementById('mq3-value').textContent = mq3Value.toFixed(6);
+    document.getElementById('mq135-value').textContent = mq135Value.toFixed(6);
+    
+    // Set grade badge color
+    const gradeBadge = document.getElementById('purity-grade');
+    gradeBadge.className = `grade-badge grade-${grade.toLowerCase()}`;
+    
+    // Show readings and enable commit button
+    readingsDiv.style.display = 'block';
+    updateSensorStatus('online', `Last reading: ${new Date().toLocaleTimeString()}`);
+    commitBtn.disabled = false;
+}
+
+        // Commit sensor data to blockchain
+        async function commitSensorData() {
+            if (!latestReading?.available) {
+                alert('No valid sensor data to commit');
+                return;
+            }
+            
+            const spice = prompt('Enter spice name:');
+            const batchId = prompt('Enter batch ID:');
+            
+            if (!spice || !batchId) return;
+            
+            try {
+                const response = await fetch('/api/sensor/commit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ spice, batchId })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(`✅ Successfully committed!\nPurity: ${result.purity.toFixed(4)} (${result.grade})\nTx: ${result.txHash}`);
+                } else {
+                    alert(`❌ Commit failed: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`❌ Network error: ${error.message}`);
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initSensorConnection();
+            document.getElementById('commit-sensor-btn').addEventListener('click', commitSensorData);
+        });
+    // Firebase configuration and functions are kept as per user request
+    const firebaseConfig = {
+        apiKey: "AIzaSyDDpN0DKlwhQ6P2-0RA2cx5BJnh_UAH-Gw",
+        authDomain: "spicesniff-plus.firebaseapp.com",
+        projectId: "spicesniff-plus",
+        storageBucket: "spicesniff-plus.firebasestorage.app",
+        messagingSenderId: "540246187315",
+        appId: "1:540246187315:web:8002c380d37806a06e3246",
+        measurementId: "G-Q06PJSDW0T"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    
+    // --- Global Configuration ---
+    const SERVER_URL = "http://localhost:3000"; 
+    window.currentSensorData = null; // Store fetched data
+    window.html5QrcodeScanner = null; // Global scanner instance
+    
+    // Page navigation
+    function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    document.getElementById(pageId).classList.add('active');
+    
+    // Special cases
+    if (pageId === 'view-data-page') {
+        loadPreviousUploads();
+    } else if (pageId === 'scan-product-page') {
+        initQRScanner();
+    } else if (pageId === 'consumer-dashboard-page') {
+        checkCameraPermission();
+    } else if (pageId === 'farmer-dashboard-page') {
+        // Initialize sensor connection when farmer dashboard is shown
+        if (!window.socketInitialized) {
+            initSensorConnection();
+            window.socketInitialized = true;
+        }
+    }
+    
+    // Scroll to top on page change
+    window.scrollTo(0, 0);
+}
+function checkSensorConnection() {
+    fetch(`${SERVER_URL}/health`)
+        .then(response => response.json())
+        .then(health => {
+            if (health.ipfs) {
+                updateSensorStatus('online', 'Connected to sensor backend');
+            } else {
+                updateSensorStatus('offline', 'Sensor backend not available');
+            }
+        })
+        .catch(error => {
+            console.error('Error checking sensor connection:', error);
+            updateSensorStatus('offline', 'Cannot connect to sensor backend');
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if we're on a mobile device
+    if (/Mobi|Android/i.test(navigator.userAgent)) {
+        document.body.classList.add('mobile-device');
+    }
+    
+    // Check sensor connection status
+    checkSensorConnection();
+    
+    // Initialize sensor connection if we're on the farmer dashboard
+    if (document.getElementById('farmer-dashboard-page').classList.contains('active')) {
+        initSensorConnection();
+        window.socketInitialized = true;
+    }
+    
+    // Add event listener for the commit button
+    const commitBtn = document.getElementById('commit-sensor-btn');
+    if (commitBtn) {
+        commitBtn.addEventListener('click', commitSensorData);
+    }
+});
+    
+    // Check camera permission
+    function checkCameraPermission() {
+        navigator.mediaDevices.enumerateDevices()
+            .then(devices => {
+                const hasCamera = devices.some(device => device.kind === 'videoinput');
+                const cameraPermission = document.getElementById('camera-permission');
+                
+                if (hasCamera) {
+                    cameraPermission.style.display = 'none';
+                } else {
+                    cameraPermission.style.display = 'block';
+                }
+            })
+            .catch(err => {
+                console.error('Error checking camera permission:', err);
+                document.getElementById('camera-permission').style.display = 'block';
+            });
+    }
+    
+    // Initialize camera for scanning
+    async function initCameraForScanning() {
+  try {
+    // Check if we're on a secure context (HTTPS or localhost)
+    if (!isSecureContext() && isMobileDevice()) {
+      showCameraHTTPSWarning();
+      return;
+    }
+    
+    // Request camera permissions
+    await requestCameraPermission();
+    
+    // Show the scanner page
+    showPage('scan-product-page');
+    
+    // Initialize scanner after a short delay
+    setTimeout(initQRScanner, 300);
+    
+  } catch (error) {
+    console.error('Camera initialization failed:', error);
+    showCameraPermissionError(error);
+  }
+}
+
+// Check if device is mobile
+function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Check if we're on a secure context (HTTPS or localhost)
+function isSecureContext() {
+  return window.location.protocol === 'https:' || 
+         window.location.hostname === 'localhost' || 
+         window.location.hostname === '127.0.0.1';
+}
+
+// Request camera permission explicitly
+async function requestCameraPermission() {
+  try {
+    // Check if browser supports mediaDevices
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('Camera API not supported in this browser');
+    }
+    
+    // Check camera availability
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter(device => device.kind === 'videoinput');
+    
+    if (cameras.length === 0) {
+      throw new Error('No camera found on this device');
+    }
+    
+    // Request camera access
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        facingMode: 'environment' // Prefer rear camera
+      } 
+    });
+    
+    // Stop the stream immediately - we just needed permission
+    stream.getTracks().forEach(track => track.stop());
+    
+    return true;
+  } catch (error) {
+    throw error;
+  }
+}
+
+// Show HTTPS warning for mobile devices
+function showCameraHTTPSWarning() {
+  const consumerPage = document.getElementById('consumer-dashboard-page');
+  const warningHtml = `
+    <div class="card" style="margin-top: 20px; background-color: #fff3cd; border-left: 4px solid #ffc107;">
+      <h3><i class="fas fa-exclamation-triangle"></i> HTTPS Required</h3>
+      <p>Camera access requires a secure connection (HTTPS).</p>
+      <p>Please use one of these methods to access the app:</p>
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+        <h4>Option 1: Use a tunnel service</h4>
+        <p>Run this command in your terminal:</p>
+        <code style="background: #e9ecef; padding: 8px; border-radius: 4px; display: block; margin: 10px 0;">
+          npx localtunnel --port 3000 --subdomain spicesniff-mr
+        </code>
+        <p>Then access: <strong>https://spicesniff-mr.loca.lt</strong></p>
+        
+        <h4>Option 2: Use Android Chrome flags (for testing)</h4>
+        <p>Visit: <code>chrome://flags</code> and enable:</p>
+        <ul>
+          <li>"Insecure origins treated as secure" - Add your HTTP URL</li>
+        </ul>
+      </div>
+      <button class="btn" onclick="window.location.reload()">
+        <i class="fas fa-refresh"></i> Refresh Page
+      </button>
+    </div>
+  `;
+  
+  // Add or update warning
+  let warningElement = document.getElementById('camera-https-warning');
+  if (!warningElement) {
+    warningElement = document.createElement('div');
+    warningElement.id = 'camera-https-warning';
+    consumerPage.appendChild(warningElement);
+  }
+  warningElement.innerHTML = warningHtml;
+}
+
+// Show camera permission error
+function showCameraPermissionError(error) {
+  const scanPage = document.getElementById('scan-product-page');
+  const errorHtml = `
+    <div class="card" style="margin-top: 20px; background-color: #f8d7da; border-left: 4px solid #dc3545;">
+      <h3><i class="fas fa-camera-slash"></i> Camera Access Denied</h3>
+      <p>${error.message || 'Could not access camera'}</p>
+      <p>Please ensure:</p>
+      <ol>
+        <li>You've granted camera permissions to your browser</li>
+        <li>You're using a supported browser (Chrome, Safari, Firefox)</li>
+        <li>Your device has a working camera</li>
+      </ol>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn" onclick="initCameraForScanning()">
+          <i class="fas fa-camera"></i> Try Again
+        </button>
+        <button class="btn btn-outline" onclick="showPage('consumer-dashboard-page')">
+          <i class="fas fa-arrow-left"></i> Back
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('scan-result').innerHTML = errorHtml;
+}
+
+// Initialize QR Scanner with mobile optimizations
+function initQRScanner() {
+  try {
+    // Clear previous scanner if exists
+    if (window.html5QrcodeScanner) {
+      window.html5QrcodeScanner.clear().catch(e => console.log('Clear error:', e));
+    }
+    
+    const qrReaderElement = document.getElementById('qr-reader');
+    if (!qrReaderElement) {
+      throw new Error('QR reader element not found');
+    }
+    
+    qrReaderElement.innerHTML = '';
+    document.getElementById('scan-result').innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Initializing scanner...</span></div>';
+    
+    // Mobile-specific configuration
+    const config = {
+      fps: 10,
+      qrbox: isMobileDevice() ? { width: 200, height: 200 } : { width: 250, height: 250 },
+      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_QR],
+      rememberLastUsedCamera: true,
+      showTorchButtonIfSupported: true,
+      showZoomSliderIfSupported: true
+    };
+    
+    window.html5QrcodeScanner = new Html5QrcodeScanner(
+      "qr-reader", 
+      config,
+      false
+    );
+    
+    window.html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    
+  } catch (error) {
+    console.error('Error initializing QR scanner:', error);
+    document.getElementById('scan-result').innerHTML = `
+      <div class="card" style="margin-top: 20px;">
+        <h3>Scanner Error</h3>
+        <p>${error.message}</p>
+        <button class="btn" onclick="initQRScanner()">
+          <i class="fas fa-redo"></i> Try Again
+        </button>
+      </div>
+    `;
+  }
+}
+
+    
+    // Original Firebase Authentication functions - kept as requested
+    function loginFarmer() {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        
+        if (email && password) {
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    document.getElementById('farmer-name').textContent = user.email;
+                    showPage('farmer-dashboard-page');
+                })
+                .catch((error) => {
+                    alert('Login error: ' + error.message);
+                });
+        } else {
+            alert('Please enter email and password');
+        }
+    }
+    
+    function signupFarmer() {
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
+        const farmName = document.getElementById('signup-farmname').value;
+        
+        if (email && password && farmName) {
+            if (password.length < 6) {
+                alert('Password should be at least 6 characters');
+                return;
+            }
+            
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    return db.collection('farmers').doc(user.uid).set({
+                        email: email,
+                        farmName: farmName,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .then(() => {
+                    document.getElementById('farmer-name').textContent = email;
+                    showPage('farmer-dashboard-page');
+                })
+                .catch((error) => {
+                    alert('Signup error: ' + error.message);
+                });
+        } else {
+            alert('Please fill all fields');
+        }
+    }
+    
+    function logoutFarmer() {
+        auth.signOut().then(() => {
+            showPage('home-page');
+        });
+    }
+    
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            document.getElementById('farmer-name').textContent = user.email;
+        }
+    });
+
+    // --- Farmer Dashboard Functions ---
+    
+    // Generates mock sensor data and displays it
+function getSensorDataFromBackend() {
+    const spiceType = document.getElementById('spice-type')?.value;
+    const batchId = document.getElementById('batch-id')?.value;
+    
+    if (!spiceType || !batchId) {
+        alert('Please enter a spice type and batch ID.');
+        return;
+    }
+
+    // Show loading indicator
+    const loadingElement = document.getElementById('loading-sensor');
+    if (loadingElement) {
+        loadingElement.style.display = 'flex';
+    }
+    
+    // Fetch data from the /api/ingest endpoint (GET request for latest data)
+    fetch(`${SERVER_URL}/api/ingest`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(responseData => {
+        // Extract latestData from the nested response
+        const sensorData = responseData.latestData;
+        
+        // Check if sensor data exists and is available
+        if (!sensorData || !sensorData.available) {
+            throw new Error('Sensor data not available or device not ready');
+        }
+        
+        // Extract the required sensor values from latestData
+        const extractedData = {
+            deviceId: sensorData.deviceId || 'unknown',
+            phase: sensorData.phase || 'unknown',
+            temp: sensorData.temp || null,
+            rel_hum: sensorData.rel_hum || null,
+            gas_kohm: sensorData.gas_kohm || null,
+            mq3_rsr0: sensorData.mq3_rsr0 || null,
+            mq135_rsr0: sensorData.mq135_rsr0 || null,
+            purity: sensorData.purity || null,
+            grade: sensorData.grade || 'N',
+            timestamp: sensorData._serverTs || Date.now()
+        };
+        
+        console.log('✅ Extracted sensor data:', extractedData);
+        
+        // Format the sensor data for display
+        const formattedData = formatSensorDataFromAPI(spiceType, batchId, extractedData);
+        
+        // Store globally for potential later use
+        window.currentSensorData = formattedData;
+        
+        // Display the sensor data
+        displaySensorData(formattedData);
+        
+        // Hide loading indicator
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching sensor data from /api/ingest:', error);
+        
+        // Fallback 1: Try the /api/sensor/latest endpoint
+        fetch(`${SERVER_URL}/api/sensor/latest`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Latest sensor endpoint also failed');
+                }
+                return response.json();
+            })
+            .then(sensorData => {
+                if (!sensorData || !sensorData.available) {
+                    throw new Error('Fallback sensor data not available');
+                }
+                
+                const extractedData = {
+                    deviceId: sensorData.deviceId || 'unknown',
+                    phase: sensorData.phase || 'unknown',
+                    temp: sensorData.temp || null,
+                    rel_hum: sensorData.rel_hum || null,
+                    gas_kohm: sensorData.gas_kohm || null,
+                    mq3_rsr0: sensorData.mq3_rsr0 || null,
+                    mq135_rsr0: sensorData.mq135_rsr0 || null,
+                    purity: sensorData.purity || null,
+                    grade: sensorData.grade || 'N',
+                    timestamp: sensorData._serverTs || Date.now()
+                };
+                
+                const formattedData = formatSensorDataFromAPI(spiceType, batchId, extractedData);
+                window.currentSensorData = formattedData;
+                displaySensorData(formattedData);
+                
+                if (loadingElement) {
+                    loadingElement.style.display = 'none';
+                }
+            })
+            .catch(fallbackError => {
+                console.error('Fallback endpoint also failed:', fallbackError);
+                
+                // Fallback 2: Check if live reading is available from Socket.IO
+                if (window.latestReading && window.latestReading.available) {
+                    console.log('Using live reading from Socket.IO as final fallback');
+                    const extractedData = {
+                        deviceId: window.latestReading.deviceId || 'unknown',
+                        phase: window.latestReading.phase || 'unknown',
+                        temp: window.latestReading.temp || null,
+                        rel_hum: window.latestReading.rel_hum || null,
+                        gas_kohm: window.latestReading.gas_kohm || null,
+                        mq3_rsr0: window.latestReading.mq3_rsr0 || null,
+                        mq135_rsr0: window.latestReading.mq135_rsr0 || null,
+                        purity: window.latestReading.purity || null,
+                        grade: window.latestReading.grade || 'N',
+                        timestamp: window.latestReading._serverTs || Date.now()
+                    };
+                    
+                    const formattedData = formatSensorData(spiceType, batchId, extractedData);
+                    window.currentSensorData = formattedData;
+                    displaySensorData(formattedData);
+                    
+                    if (loadingElement) {
+                        loadingElement.style.display = 'none';
+                    }
+                } else {
+                    // Final fallback to mock data
+                    console.log('No live data available, generating mock data');
+                    setTimeout(() => {
+                        generateMockSensorData(spiceType, batchId);
+                        if (loadingElement) {
+                            loadingElement.style.display = 'none';
+                        }
+                    }, 1000);
+                }
+            });
+    });
+}
+
+function formatSensorData(spiceType, batchId, sensorData) {
+    // Check if purity is below threshold
+    const purityValue = sensorData.purity || (sensorData.derived_metrics && sensorData.derived_metrics.purity_score) || 0;
+    const purityDisplay = purityValue < 0.05 ? 'No spice detected' : `${(purityValue * 100).toFixed(2)}%`;
+    const grade = purityValue < 0.05 ? 'N/A' : (sensorData.grade || (sensorData.derived_metrics && sensorData.derived_metrics.grade) || 'N/A');
+    
+    return {
+        spice: spiceType,
+        batch_id: batchId,
+        farm: {
+            name: "Farm A",
+            location: {
+                district: "Idukki",
+                latitude: 9.918,
+                longitude: 77.102
+            }
+        },
+        device_id: sensorData.deviceId || sensorData.device_id || "SPICESNIFF-UNIT-07",
+        timestamp: sensorData._serverTs ? new Date(sensorData._serverTs).toISOString() : 
+                   (sensorData.timestamp || new Date().toISOString()),
+        sensor_readings: {
+            // Map the correct field names from your ESP32 data
+            MQ135_air: sensorData.mq135_rsr0 || (sensorData.sensor_readings && sensorData.sensor_readings.MQ135_air) || 0,
+            MQ3_alcohol: sensorData.mq3_rsr0 || (sensorData.sensor_readings && sensorData.sensor_readings.MQ3_alcohol) || 0,
+            BME688_voc: sensorData.gas_kohm || (sensorData.sensor_readings && sensorData.sensor_readings.BME688_voc) || 0,
+            temp: sensorData.temp || sensorData.temperature || (sensorData.sensor_readings && sensorData.sensor_readings.temp) || 0,
+            humid: sensorData.rel_hum || sensorData.humidity || (sensorData.sensor_readings && sensorData.sensor_readings.humid) || 0
+        },
+        derived_metrics: {
+            purity_score: purityDisplay,
+            confidence: sensorData.confidence || (sensorData.derived_metrics && sensorData.derived_metrics.confidence) || 95,
+            grade: grade
+        }
+    };
+}
+
+
+    // Update the generateMockSensorData function to include purity check
+function generateMockSensorData(spiceType, batchId) {
+    // Random purity between 0 and 1
+    const purity = Math.random();
+    const purityDisplay = purity < 0.05 ? 'No spice detected' : `${(purity * 100).toFixed(2)}%`;
+    const grade = purity < 0.05 ? 'N/A' : ["A", "B", "C"][Math.floor(Math.random() * 3)];
+    
+    const sensorData = {
+        spice: spiceType,
+        batch_id: batchId,
+        farm: {
+            name: "Farm A",
+            location: {
+                district: "Idukki",
+                latitude: 9.918,
+                longitude: 77.102
+            }
+        },
+        device_id: "SPICESNIFF-UNIT-07",
+        timestamp: new Date().toISOString(),
+        sensor_readings: {
+            MQ135_air: Math.floor(Math.random() * 100) + 400,
+            MQ3_alcohol: Math.floor(Math.random() * 100),
+            BME688_voc: Math.floor(Math.random() * 200),
+            temp: Math.floor(Math.random() * 10) + 25,
+            humid: Math.floor(Math.random() * 30) + 50
+        },
+        derived_metrics: {
+            purity_score: purityDisplay,
+            confidence: Math.floor(Math.random() * 10) + 80,
+            grade: grade
+        }
+    };
+    
+    window.currentSensorData = sensorData;
+    displaySensorData(sensorData);
+}
+
+    
+    // Update the displaySensorData function to handle the purity check
+function displaySensorData(data) {
+    // Handle purity display based on value
+    const purityDisplay = data.derived_metrics.purity_score === 'No spice detected' ? 
+        'No spice detected' : 
+        `${data.derived_metrics.purity_score}%`;
+    
+    const gradeDisplay = data.derived_metrics.purity_score === 'No spice detected' ? 
+        'N/A' : 
+        data.derived_metrics.grade;
+    
+    document.getElementById('sensor-data-content').innerHTML = `
+        <div class="detail-row"><span>Spice:</span> <span>${data.spice}</span></div>
+        <div class="detail-row"><span>Batch ID:</span> <span>${data.batch_id}</span></div>
+        <div class="detail-row"><span>Farm:</span> <span>${data.farm.name}</span></div>
+        <div class="detail-row"><span>Temperature:</span> <span>${data.sensor_readings.temp}°C</span></div>
+        <div class="detail-row"><span>Humidity:</span> <span>${data.sensor_readings.humid}%</span></div>
+        <div class="detail-row"><span>Purity Score:</span> <span>${purityDisplay}</span></div>
+        <div class="detail-row"><span>Grade:</span> <span>${gradeDisplay}</span></div>
+    `;
+    
+    document.getElementById('sensor-data').style.display = 'block';
+    
+    const jsonData = JSON.stringify(data);
+    QRCode.toCanvas(document.getElementById('qrcode-canvas'), 
+        jsonData, 
+        { width: 200 }, 
+        function(error) {
+            if (error) console.error(error);
+        }
+    );
+}
+
+// Initialize sensor connection when the farmer dashboard is shown
+function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    document.getElementById(pageId).classList.add('active');
+    
+    // Special cases
+    if (pageId === 'view-data-page') {
+        loadPreviousUploads();
+    } else if (pageId === 'scan-product-page') {
+        initQRScanner();
+    } else if (pageId === 'consumer-dashboard-page') {
+        checkCameraPermission();
+    } else if (pageId === 'farmer-dashboard-page') {
+        // Initialize sensor connection when farmer dashboard is shown
+        if (!window.socketInitialized) {
+            initSensorConnection();
+            window.socketInitialized = true;
+        }
+    }
+    
+    // Scroll to top on page change
+    window.scrollTo(0, 0);
+}
+
+
+    
+    // Saves data to blockchain via Node.js backend
+    function saveDataToBlockchain() {
+        if (!window.currentSensorData) {
+            alert('No sensor data to save. Please generate data first.');
+            return;
+        }
+
+        document.getElementById('blockchain-status').style.display = 'block';
+        document.getElementById('transaction-status').textContent = 'Processing...';
+
+        fetch(`${SERVER_URL}/sensor`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(window.currentSensorData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(error => { throw new Error(error.error || 'Server error'); });
+            }
+            return response.json();
+        })
+        .then(result => {
+            document.getElementById('ipfs-cid').textContent = result.cid;
+            document.getElementById('transaction-hash').textContent = result.txHash;
+            document.getElementById('block-number').textContent = result.blockNumber;
+            document.getElementById('transaction-status').textContent = 'Completed';
+            
+            // Generate QR code with the full data from the sensor
+            const jsonData = JSON.stringify(window.currentSensorData);
+            QRCode.toCanvas(document.getElementById('qrcode-canvas'), 
+                jsonData, 
+                { width: 200 }, 
+                function(error) {
+                    if (error) console.error(error);
+                }
+            );
+        })
+        .catch(error => {
+            console.error('Error saving to blockchain:', error);
+            document.getElementById('transaction-status').textContent = 'Failed: ' + error.message;
+        });
+    }
+    
+    // Print QR Code
+    function printQRCode() {
+        window.print();
+    }
+    
+    // Loads all previous uploads from the server
+    async function loadPreviousUploads() {
+        document.getElementById('previous-uploads').innerHTML = `
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <span style="margin-left: 10px;">Fetching previous uploads...</span>
+            </div>
+        `;
+
+        try {
+            const response = await fetch(`${SERVER_URL}/batches`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch batches from server.');
+            }
+            const allBatches = await response.json();
+            
+            if (allBatches.length === 0) {
+                 document.getElementById('previous-uploads').innerHTML = '<p>No previous uploads found.</p>';
+                 return;
+            }
+
+            let html = '';
+            for (const batch of allBatches) {
+                try {
+                    // Try to fetch IPFS data
+                    const ipfsResponse = await fetch(`${SERVER_URL}/ipfs/${batch.cid}`);
+                    let ipfsData = null;
+                    
+                    if (ipfsResponse.ok) {
+                        ipfsData = await ipfsResponse.json();
+                    } else {
+                        // If IPFS fetch fails, try to get data from the blockchain directly
+                        const blockchainResponse = await fetch(`${SERVER_URL}/batch/${batch.batchId}`);
+                        if (blockchainResponse.ok) {
+                            const blockchainData = await blockchainResponse.json();
+                            ipfsData = blockchainData.ipfsData || null;
+                        }
+                    }
+
+                    const formattedData = ipfsData ? `
+                        <div class="detail-row"><span>Spice:</span> <span>${ipfsData.spice || batch.spiceName}</span></div>
+                        <div class="detail-row"><span>Batch ID:</span> <span>${ipfsData.batch_id || batch.batchId}</span></div>
+                        <div class="detail-row"><span>Purity Score:</span> <span>${ipfsData.derived_metrics?.purity_score || 'N/A'}%</span></div>
+                        <div class="detail-row"><span>Grade:</span> <span>${ipfsData.derived_metrics?.grade || 'N/A'}</span></div>
+                        <div class="detail-row"><span>Recorded Time:</span> <span>${ipfsData.timestamp ? new Date(ipfsData.timestamp).toLocaleString() : 'N/A'}</span></div>
+                        <div class="json-data">
+                            <h4>Raw JSON Data:</h4>
+                            <pre>${JSON.stringify(ipfsData, null, 2)}</pre>
+                        </div>
+                    ` : `
+                        <p>Error: Could not retrieve IPFS data for this batch.</p>
+                        <p>On-Chain CID: <a href="http://127.0.0.1:8080/ipfs/${batch.cid}" target="_blank">${batch.cid}</a></p>
+                    `;
+
+                    html += `
+                        <div class="previous-upload-card">
+                            <h3>${batch.spiceName} - ${batch.batchId}</h3>
+                            ${formattedData}
+                        </div>
+                    `;
+                } catch (ipfsError) {
+                    // Handle IPFS fetch errors gracefully for each batch
+                    console.error(`Error fetching IPFS data for batch ${batch.batchId}:`, ipfsError);
+                    html += `
+                        <div class="previous-upload-card">
+                            <h3>${batch.spiceName} - ${batch.batchId}</h3>
+                            <p>Error: Could not retrieve IPFS data for this batch.</p>
+                            <p>On-Chain CID: <a href="http://127.0.0.1:8080/ipfs/${batch.cid}" target="_blank">${batch.cid}</a></p>
+                        </div>
+                    `;
+                }
+            }
+            document.getElementById('previous-uploads').innerHTML = html;
+        } catch (error) {
+            console.error('Error loading all batches:', error);
+            document.getElementById('previous-uploads').innerHTML = `<p>Error loading data: ${error.message}</p>`;
+        }
+    }
+    // --- Mobile Camera Functions ---
+
+// Check if device is mobile
+function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Check if we're on a secure context (HTTPS or localhost)
+function isSecureContext() {
+  return window.location.protocol === 'https:' || 
+         window.location.hostname === 'localhost' || 
+         window.location.hostname === '127.0.0.1';
+}
+
+// Initialize camera for scanning with mobile support
+async function initCameraForScanning() {
+  try {
+    // Check if we're on a secure context
+    if (!isSecureContext() && isMobileDevice()) {
+      showCameraHTTPSWarning();
+      return;
+    }
+    
+    // Request camera permissions
+    await requestCameraPermission();
+    
+    // Show the scanner page
+    showPage('scan-product-page');
+    
+    // Initialize scanner after a short delay
+    setTimeout(initQRScanner, 300);
+    
+  } catch (error) {
+    console.error('Camera initialization failed:', error);
+    showCameraPermissionError(error);
+  }
+}
+
+// Request camera permission explicitly
+async function requestCameraPermission() {
+  try {
+    // Check if browser supports mediaDevices
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('Camera API not supported in this browser');
+    }
+    
+    // Check camera availability
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter(device => device.kind === 'videoinput');
+    
+    if (cameras.length === 0) {
+      throw new Error('No camera found on this device');
+    }
+    
+    // Request camera access
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        facingMode: 'environment' // Prefer rear camera
+      } 
+    });
+    
+    // Stop the stream immediately - we just needed permission
+    stream.getTracks().forEach(track => track.stop());
+    
+    return true;
+  } catch (error) {
+    throw error;
+  }
+}
+
+// Show HTTPS warning for mobile devices
+function showCameraHTTPSWarning() {
+  const consumerPage = document.getElementById('consumer-dashboard-page');
+  const warningHtml = `
+    <div class="card" style="margin-top: 20px; background-color: #fff3cd; border-left: 4px solid #ffc107;">
+      <h3><i class="fas fa-exclamation-triangle"></i> HTTPS Required</h3>
+      <p>Camera access requires a secure connection (HTTPS).</p>
+      <p>Please use one of these methods to access the app:</p>
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+        <h4>Option 1: Use a tunnel service</h4>
+        <p>Run this command in your terminal:</p>
+        <code style="background: #e9ecef; padding: 8px; border-radius: 4px; display: block; margin: 10px 0;">
+          npx localtunnel --port 3000 --subdomain spicesniff-mr
+        </code>
+        <p>Then access: <strong>https://spicesniff-mr.loca.lt</strong></p>
+        
+        <h4>Option 2: Use Android Chrome flags (for testing)</h4>
+        <p>Visit: <code>chrome://flags</code> and enable:</p>
+        <ul>
+          <li>"Insecure origins treated as secure" - Add your HTTP URL</li>
+        </ul>
+      </div>
+      <button class="btn" onclick="window.location.reload()">
+        <i class="fas fa-refresh"></i> Refresh Page
+      </button>
+    </div>
+  `;
+  
+  // Add or update warning
+  let warningElement = document.getElementById('camera-https-warning');
+  if (!warningElement) {
+    warningElement = document.createElement('div');
+    warningElement.id = 'camera-https-warning';
+    consumerPage.appendChild(warningElement);
+  }
+  warningElement.innerHTML = warningHtml;
+}
+
+// Show camera permission error
+function showCameraPermissionError(error) {
+  const scanPage = document.getElementById('scan-product-page');
+  const errorHtml = `
+    <div class="card" style="margin-top: 20px; background-color: #f8d7da; border-left: 4px solid #dc3545;">
+      <h3><i class="fas fa-camera-slash"></i> Camera Access Denied</h3>
+      <p>${error.message || 'Could not access camera'}</p>
+      <p>Please ensure:</p>
+      <ol>
+        <li>You've granted camera permissions to your browser</li>
+        <li>You're using a supported browser (Chrome, Safari, Firefox)</li>
+        <li>Your device has a working camera</li>
+      </ol>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn" onclick="initCameraForScanning()">
+          <i class="fas fa-camera"></i> Try Again
+        </button>
+        <button class="btn btn-outline" onclick="showPage('consumer-dashboard-page')">
+          <i class="fas fa-arrow-left"></i> Back
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('scan-result').innerHTML = errorHtml;
+}
+
+// Initialize QR Scanner with mobile optimizations
+function initQRScanner() {
+  try {
+    // Clear previous scanner if exists
+    if (window.html5QrcodeScanner) {
+      window.html5QrcodeScanner.clear().catch(e => console.log('Clear error:', e));
+    }
+    
+    const qrReaderElement = document.getElementById('qr-reader');
+    if (!qrReaderElement) {
+      throw new Error('QR reader element not found');
+    }
+    
+    qrReaderElement.innerHTML = '';
+    document.getElementById('scan-result').innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Initializing scanner...</span></div>';
+    
+    // Mobile-specific configuration
+    const config = {
+      fps: 10,
+      qrbox: isMobileDevice() ? { width: 200, height: 200 } : { width: 250, height: 250 },
+      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_QR],
+      rememberLastUsedCamera: true,
+      showTorchButtonIfSupported: true,
+      showZoomSliderIfSupported: true
+    };
+    
+    window.html5QrcodeScanner = new Html5QrcodeScanner(
+      "qr-reader", 
+      config,
+      false
+    );
+    
+    window.html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    
+  } catch (error) {
+    console.error('Error initializing QR scanner:', error);
+    document.getElementById('scan-result').innerHTML = `
+      <div class="card" style="margin-top: 20px;">
+        <h3>Scanner Error</h3>
+        <p>${error.message}</p>
+        <button class="btn" onclick="initQRScanner()">
+          <i class="fas fa-redo"></i> Try Again
+        </button>
+      </div>
+    `;
+  }
+}
+
+// Handle successful QR code scan
+function onScanSuccess(decodedText, decodedResult) {
+  try {
+    const data = JSON.parse(decodedText);
+    
+    // Stop the scanner
+    if (window.html5QrcodeScanner) {
+      window.html5QrcodeScanner.clear().catch(e => console.log('Clear error:', e));
+    }
+    
+    // Show loading state
+    document.getElementById('scan-result').innerHTML = '<div class="loading"><div class="loading-spinner"></div><span>Loading product details...</span></div>';
+    
+    // Display the spice details
+    displaySpiceDetails(data);
+    
+  } catch (e) {
+    document.getElementById('scan-result').innerHTML = `
+      <div class="card" style="margin-top: 20px;">
+        <h3>Invalid QR Code</h3>
+        <p>The scanned QR code does not contain valid spice data.</p>
+        <p>Error: ${e.message}</p>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn" onclick="initQRScanner()">
+            <i class="fas fa-redo"></i> Scan Another
+          </button>
+          <button class="btn btn-outline" onclick="showPage('consumer-dashboard-page')">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// Handle failed QR code scan
+function onScanFailure(error) {
+  // Only log to console, don't show errors to user for normal failures
+  if (error && !error.message?.includes('No MultiFormat Readers')) {
+    console.log('Scan failure (expected):', error);
+  }
+}
+
+    // --- Consumer Dashboard Functions ---
+    
+    // Initializes QR code scanner
+    function initQRScanner() {
+        if (window.html5QrcodeScanner) {
+            window.html5QrcodeScanner.clear();
+        }
+        
+        document.getElementById('scan-result').innerHTML = '';
+        
+        window.html5QrcodeScanner = new Html5QrcodeScanner(
+            "qr-reader", 
+            { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_QR]
+            },
+            /* verbose= */ false
+        );
+        
+        window.html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    }
+    
+    // Handles successful QR code scan
+    function onScanSuccess(decodedText, decodedResult) {
+        try {
+            const data = JSON.parse(decodedText);
+            displaySpiceDetails(data);
+            
+            // Stop the scanner after successful scan
+            window.html5QrcodeScanner.clear();
+            showPage('consumer-dashboard-page');
+        } catch (e) {
+            document.getElementById('scan-result').innerHTML = `
+                <div class="card" style="margin-top: 20px;">
+                    <h3>Invalid QR Code</h3>
+                    <p>The scanned QR code does not contain valid spice data.</p>
+                    <p>Raw content: ${decodedText}</p>
+                </div>
+            `;
+        }
+    }
+    
+    // Handles failed QR code scan
+    function onScanFailure(error) {
+        // Expected to be called often, no need to handle every time
+    }
+    
+    // Displays spice details for consumer
+    function displaySpiceDetails(data) {
+        document.getElementById('spice-details-content').innerHTML = `
+            <div class="detail-row"><span>Spice:</span> <span>${data.spice}</span></div>
+            <div class="detail-row"><span>Batch ID:</span> <span>${data.batch_id}</span></div>
+            <div class="detail-row"><span>Farm:</span> <span>${data.farm.name}</span></div>
+            <div class="detail-row"><span>Location:</span> <span>${data.farm.location.district}</span></div>
+            <div class="detail-row"><span>Device ID:</span> <span>${data.device_id}</span></div>
+            <div class="detail-row"><span>Timestamp:</span> <span>${new Date(data.timestamp).toLocaleString()}</span></div>
+            <div class="detail-row"><span>Temperature:</span> <span>${data.sensor_readings.temp}°C</span></div>
+            <div class="detail-row"><span>Humidity:</span> <span>${data.sensor_readings.humid}%</span></div>
+            <div class="detail-row"><span>Air Quality:</span> <span>${data.sensor_readings.MQ135_air}</span></div>
+            <div class="detail-row"><span>Alcohol Level:</span> <span>${data.sensor_readings.MQ3_alcohol}</span></div>
+            <div class="detail-row"><span>VOC Level:</span> <span>${data.sensor_readings.BME688_voc}</span></div>
+            <div class="detail-row"><span>Purity Score:</span> <span>${data.derived_metrics.purity_score}%</span></div>
+            <div class="detail-row"><span>Grade:</span> <span>${data.derived_metrics.grade}</span></div>
+            <div class="json-data">
+                <h4>Raw JSON Data:</h4>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            </div>
+        `;
+        
+        document.getElementById('consumer-data').style.display = 'block';
+    }
+    
+    // Print details
+    function printDetails() {
+        window.print();
+    }
+    
+    // Initialize the app
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we're on a mobile device
+        if (/Mobi|Android/i.test(navigator.userAgent)) {
+            // Add mobile-specific classes for styling
+            document.body.classList.add('mobile-device');
+        }
+    });
+</script>
+</body>
+</html>
