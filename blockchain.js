@@ -28,78 +28,162 @@ async function addBatchOnChain({ batch_id, spice, cid }) {
     }
 }
 
+// NEW: Get a single batch from blockchain
 async function getBatchOnChain(batchId) {
     try {
         const contract = getContract();
-        const [spiceName, cid, ts] = await contract.getBatch(batchId);
-        return { spiceName, cid, timestamp: Number(ts) };
+        
+        // Try different function names
+        const functionNames = ['getBatch', 'batches', 'getBatchById'];
+        
+        for (const funcName of functionNames) {
+            if (contract[funcName]) {
+                try {
+                    const batch = await contract[funcName](batchId);
+                    
+                    if (batch && (batch.cid !== "" || batch[2] !== "")) {
+                        return {
+                            batchId: batchId,
+                            spiceName: batch.spice || batch[1] || 'Unknown',
+                            cid: batch.cid || batch[2] || 'Unknown',
+                            timestamp: new Date((batch.timestamp || batch[3] || 0) * 1000).toISOString(),
+                            txHash: batch.txHash || 'N/A'
+                        };
+                    }
+                } catch (e) {
+                    // Continue to next function name
+                    console.log(`Function ${funcName} failed:`, e.message);
+                }
+            }
+        }
+        
+        return null;
     } catch (error) {
-        console.error(`Error getting batch ${batchId} from blockchain:`, error);
-        throw error;
+        console.error(`Error getting batch ${batchId}:`, error);
+        return null;
     }
 }
 
-// Fixed function to get all batches using events with better error handling
 async function getAllBatches() {
     try {
         const contract = getContract();
         
-        // Get all BatchAdded events from the contract
-        const filter = contract.filters.BatchAdded();
-        const events = await contract.queryFilter(filter, 0, 'latest');
+        // Try different possible event names
+        const possibleEventNames = [
+            'BatchAdded', 
+            'BatchCreated', 
+            'NewBatch', 
+            'BatchRegistered',
+            'AddBatch'
+        ];
         
-        if (!events || events.length === 0) {
-            console.log("No BatchAdded events found");
-            return [];
-        }
+        let allEvents = [];
         
-        // Extract unique batch IDs from events with proper error handling
-        const batchIds = [];
-        for (const event of events) {
+        for (const eventName of possibleEventNames) {
             try {
-                if (event.args && event.args.batch_id) {
-                    const batchId = event.args.batch_id.toString();
-                    if (!batchIds.includes(batchId)) {
-                        batchIds.push(batchId);
-                    }
+                if (contract.filters[eventName]) {
+                    const filter = contract.filters[eventName]();
+                    const events = await contract.queryFilter(filter, 0, 'latest');
+                    allEvents = allEvents.concat(events);
+                    console.log(`Found ${events.length} events for ${eventName}`);
                 }
-            } catch (parseError) {
-                console.warn(`Could not parse event args:`, parseError.message);
-                continue;
+            } catch (e) {
+                console.log(`Event ${eventName} not found or error:`, e.message);
             }
         }
         
-        if (batchIds.length === 0) {
-            console.log("No valid batch IDs found in events");
-            return [];
+        // If no events found with standard names, try to get all events
+        if (allEvents.length === 0) {
+            console.log('No standard events found, trying to get all events...');
+            const blockNumber = await contract.provider.getBlockNumber();
+            const events = await contract.queryFilter({}, blockNumber - 1000, blockNumber);
+            allEvents = events;
         }
         
-        // Get details for each batch
+        console.log(`Total events found: ${allEvents.length}`);
+        
+        // Extract batch data from events
         const batches = [];
-        for (const batchId of batchIds) {
+        const processedBatchIds = new Set();
+        
+        for (const event of allEvents) {
             try {
-                const batchDetails = await getBatchOnChain(batchId);
-                if (batchDetails && batchDetails.cid) {
+                // Try different event argument structures
+                const args = event.args || {};
+                let batchId, spice, cid;
+                
+                // Different possible argument patterns
+                if (args.batch_id) {
+                    batchId = args.batch_id.toString();
+                    spice = args.spice;
+                    cid = args.cid;
+                } else if (args.batchId) {
+                    batchId = args.batchId.toString();
+                    spice = args.spice;
+                    cid = args.cid;
+                } else if (args[0]) {
+                    // Generic array access
+                    batchId = args[0].toString();
+                    spice = args[1];
+                    cid = args[2];
+                }
+                
+                if (batchId && !processedBatchIds.has(batchId)) {
+                    processedBatchIds.add(batchId);
+                    
                     batches.push({
-                        batchId,
-                        spiceName: batchDetails.spiceName,
-                        cid: batchDetails.cid,
-                        timestamp: batchDetails.timestamp
+                        batchId: batchId,
+                        spiceName: spice || 'Unknown',
+                        cid: cid || 'Unknown',
+                        timestamp: new Date().toISOString(),
+                        txHash: event.transactionHash,
+                        blockNumber: event.blockNumber
                     });
                 }
-            } catch (error) {
-                console.error(`Error fetching details for batch ${batchId}:`, error.message);
-                // Continue with other batches even if one fails
+            } catch (e) {
+                console.log('Error processing event:', e.message);
+            }
+        }
+        
+        // If still no batches, try direct function call
+        if (batches.length === 0) {
+            console.log('Trying direct function call to get batches...');
+            try {
+                // Try different possible function names
+                const functionNames = ['getAllBatches', 'getAllBatchIds', 'getBatches'];
+                
+                for (const funcName of functionNames) {
+                    if (contract[funcName]) {
+                        const result = await contract[funcName]();
+                        if (result && result.length > 0) {
+                            for (const batchId of result) {
+                                const batchDetails = await getBatchOnChain(batchId.toString());
+                                if (batchDetails) {
+                                    batches.push(batchDetails);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('Direct function call failed:', e.message);
             }
         }
         
         return batches;
     } catch (error) {
         console.error("Error getting all batches:", error);
-        // Return empty array instead of throwing to prevent frontend crash
         return [];
     }
 }
 
+// NEW: Function to get all batch IDs from the contract.
+async function getAllBatchIds() {
+    const contract = getContract();
+    const batchIds = await contract.getAllBatchIds();
+    // The contract returns an array of BigNumber objects, convert them to strings.
+    return batchIds.map(id => id.toString());
+}
 
-module.exports = { addBatchOnChain, getBatchOnChain, getAllBatches };
+module.exports = { addBatchOnChain, getBatchOnChain, getAllBatches, getAllBatchIds };
