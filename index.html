@@ -1630,82 +1630,90 @@ function showPage(pageId) {
     
     // Loads all previous uploads from the server
     async function loadPreviousUploads() {
-        document.getElementById('previous-uploads').innerHTML = `
-            <div class="loading">
-                <div class="loading-spinner"></div>
-                <span style="margin-left: 10px;">Fetching previous uploads...</span>
-            </div>
-        `;
+    document.getElementById('previous-uploads').innerHTML = `
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <span style="margin-left: 10px;">Fetching previous uploads...</span>
+        </div>
+    `;
 
-        try {
-            const response = await fetch(`${SERVER_URL}/batches`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch batches from server.');
-            }
-            const allBatches = await response.json();
-            
-            if (allBatches.length === 0) {
-                 document.getElementById('previous-uploads').innerHTML = '<p>No previous uploads found.</p>';
-                 return;
-            }
+    try {
+        const response = await fetch(`${SERVER_URL}/batches`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch batches from server.');
+        }
+        const allBatches = await response.json();
+        
+        console.log('Fetched batches:', allBatches); // Debug log
+        
+        if (!allBatches || allBatches.length === 0) {
+             document.getElementById('previous-uploads').innerHTML = '<p>No previous uploads found.</p>';
+             return;
+        }
 
-            let html = '';
-            for (const batch of allBatches) {
+        let html = '';
+        for (const batch of allBatches) {
+            try {
+                // Try to fetch IPFS data
+                let ipfsData = null;
                 try {
-                    // Try to fetch IPFS data
-                    const ipfsResponse = await fetch(`${SERVER_URL}/ipfs/${batch.cid}`);
-                    let ipfsData = null;
-                    
+                    const ipfsResponse = await fetch(`${SERVER_URL}/batch/${batch.batchId}`);
                     if (ipfsResponse.ok) {
                         ipfsData = await ipfsResponse.json();
-                    } else {
-                        // If IPFS fetch fails, try to get data from the blockchain directly
-                        const blockchainResponse = await fetch(`${SERVER_URL}/batch/${batch.batchId}`);
-                        if (blockchainResponse.ok) {
-                            const blockchainData = await blockchainResponse.json();
-                            ipfsData = blockchainData.ipfsData || null;
-                        }
                     }
-
-                    const formattedData = ipfsData ? `
-                        <div class="detail-row"><span>Spice:</span> <span>${ipfsData.spice || batch.spiceName}</span></div>
-                        <div class="detail-row"><span>Batch ID:</span> <span>${ipfsData.batch_id || batch.batchId}</span></div>
-                        <div class="detail-row"><span>Purity Score:</span> <span>${ipfsData.derived_metrics?.purity_score || 'N/A'}%</span></div>
-                        <div class="detail-row"><span>Grade:</span> <span>${ipfsData.derived_metrics?.grade || 'N/A'}</span></div>
-                        <div class="detail-row"><span>Recorded Time:</span> <span>${ipfsData.timestamp ? new Date(ipfsData.timestamp).toLocaleString() : 'N/A'}</span></div>
-                        <div class="json-data">
-                            <h4>Raw JSON Data:</h4>
-                            <pre>${JSON.stringify(ipfsData, null, 2)}</pre>
-                        </div>
-                    ` : `
-                        <p>Error: Could not retrieve IPFS data for this batch.</p>
-                        <p>On-Chain CID: <a href="http://127.0.0.1:8080/ipfs/${batch.cid}" target="_blank">${batch.cid}</a></p>
-                    `;
-
-                    html += `
-                        <div class="previous-upload-card">
-                            <h3>${batch.spiceName} - ${batch.batchId}</h3>
-                            ${formattedData}
-                        </div>
-                    `;
                 } catch (ipfsError) {
-                    // Handle IPFS fetch errors gracefully for each batch
-                    console.error(`Error fetching IPFS data for batch ${batch.batchId}:`, ipfsError);
-                    html += `
-                        <div class="previous-upload-card">
-                            <h3>${batch.spiceName} - ${batch.batchId}</h3>
-                            <p>Error: Could not retrieve IPFS data for this batch.</p>
-                            <p>On-Chain CID: <a href="http://127.0.0.1:8080/ipfs/${batch.cid}" target="_blank">${batch.cid}</a></p>
-                        </div>
-                    `;
+                    console.warn(`Could not fetch IPFS data for batch ${batch.batchId}:`, ipfsError);
                 }
+
+                const formattedData = ipfsData && ipfsData.data ? `
+                    <div class="detail-row"><span>Spice:</span> <span>${ipfsData.data.spice || batch.spiceName || 'N/A'}</span></div>
+                    <div class="detail-row"><span>Batch ID:</span> <span>${batch.batchId}</span></div>
+                    <div class="detail-row"><span>Purity Score:</span> <span>${ipfsData.data.derived_metrics?.purity_score || 'N/A'}</span></div>
+                    <div class="detail-row"><span>Grade:</span> <span>${ipfsData.data.derived_metrics?.grade || 'N/A'}</span></div>
+                    <div class="detail-row"><span>Recorded Time:</span> <span>${new Date(batch.timestamp || Date.now()).toLocaleString()}</span></div>
+                ` : `
+                    <div class="detail-row"><span>Spice:</span> <span>${batch.spiceName || 'N/A'}</span></div>
+                    <div class="detail-row"><span>Batch ID:</span> <span>${batch.batchId}</span></div>
+                    <div class="detail-row"><span>IPFS CID:</span> <span>${batch.cid}</span></div>
+                    <div class="detail-row"><span>Timestamp:</span> <span>${new Date(batch.timestamp || Date.now()).toLocaleString()}</span></div>
+                    <div class="detail-row"><span>Status:</span> <span>IPFS data not available</span></div>
+                `;
+
+                html += `
+                    <div class="previous-upload-card">
+                        <h3>${batch.spiceName || 'Unknown Spice'} - ${batch.batchId}</h3>
+                        ${formattedData}
+                        <div class="detail-row">
+                            <span>Blockchain CID:</span> 
+                            <span><a href="https://ipfs.io/ipfs/${batch.cid}" target="_blank">${batch.cid}</a></span>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error(`Error processing batch ${batch.batchId}:`, error);
+                html += `
+                    <div class="previous-upload-card">
+                        <h3>Error Loading Batch: ${batch.batchId}</h3>
+                        <p>Error: ${error.message}</p>
+                        <p>CID: ${batch.cid}</p>
+                    </div>
+                `;
             }
-            document.getElementById('previous-uploads').innerHTML = html;
-        } catch (error) {
-            console.error('Error loading all batches:', error);
-            document.getElementById('previous-uploads').innerHTML = `<p>Error loading data: ${error.message}</p>`;
         }
+        document.getElementById('previous-uploads').innerHTML = html;
+    } catch (error) {
+        console.error('Error loading all batches:', error);
+        document.getElementById('previous-uploads').innerHTML = `
+            <div class="card">
+                <h3>Error Loading Data</h3>
+                <p>${error.message}</p>
+                <button class="btn" onclick="loadPreviousUploads()">
+                    <i class="fas fa-redo"></i> Try Again
+                </button>
+            </div>
+        `;
     }
+}
     // --- Mobile Camera Functions ---
 
 // Check if device is mobile
