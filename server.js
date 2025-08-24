@@ -203,34 +203,20 @@ app.get("/batch/:id", async (req, res) => {
   try {
     const batchId = req.params.id;
     console.log(`Retrieving batch: ${batchId}`);
+
+    // 1) Get metadata from the blockchain.
     const meta = await getBatchOnChain(batchId);
+
     if (!meta || !meta.cid) {
-      return res.status(404).json({ error: "Batch not found", code: "BATCH_NOT_FOUND" });
+      return res.status(404).json({ error: "Not found", code: "BATCH_NOT_FOUND" });
     }
 
-    // Try to fetch JSON data
-    let jsonData = null;
-    let ipfsSource = "none";
-    if (!meta.cid.startsWith('mock-')) {
-      try {
-        jsonData = await fetchFromIPFS(meta.cid);
-        ipfsSource = "ipfs";
-      } catch (ipfsError) {
-        console.warn(`❌ IPFS fetch failed for CID ${meta.cid}:`, ipfsError.message);
-      }
-    }
-
-    return res.json({
-      ...meta,
-      data: jsonData,
-      ipfsSource: ipfsSource,
-      ipfsAvailable: app.locals.ipfsConnected
-    });
+    // 2) Fetch JSON from the local IPFS gateway.
+    const json = await fetchFromIPFS(meta.cid);
+    
+    return res.json({ ...meta, data: json });
   } catch (e) {
     console.error("❌ GET /batch/:id error:", e);
-    if (e.message && e.message.toLowerCase().includes("not found")) {
-      return res.status(404).json({ error: "Batch not found", code: "BATCH_NOT_FOUND" });
-    }
     return res.status(500).json({ error: e.message || "internal error", code: "SERVER_ERROR" });
   }
 });
@@ -239,10 +225,20 @@ app.get("/batch/:id", async (req, res) => {
 app.get("/batches", async (_req, res) => {
   try {
     console.log("Fetching all batches from blockchain.");
+    
+    // 1) Get all batches using events
     const allBatches = await getAllBatches();
-    return res.json(allBatches || []);
+    
+    // If no batches found, return empty array instead of error
+    if (!allBatches || allBatches.length === 0) {
+      console.log("No batches found in blockchain");
+      return res.json([]);
+    }
+    
+    return res.json(allBatches);
   } catch (e) {
     console.error("❌ GET /batches error:", e);
+    // Return empty array instead of error to prevent frontend crash
     return res.json([]);
   }
 });
@@ -337,6 +333,42 @@ app.get('/api/ingest', (req, res) => {
     totalReadings: sensorHistory.length,
     status: 'Server is running'
   });
+});
+// Add this route to server.js for debugging
+// Add this to server.js
+app.get("/debug/contract-events", async (req, res) => {
+    try {
+        const { getContract } = require("./blockchain");
+        const contract = getContract();
+        
+        // Get ALL events from the contract
+        const allEvents = [];
+        const eventNames = Object.keys(contract.interface.events);
+        
+        for (const eventName of eventNames) {
+            try {
+                const filter = contract.filters[eventName]();
+                const events = await contract.queryFilter(filter, 0, 'latest');
+                allEvents.push({
+                    eventName: eventName,
+                    count: events.length,
+                    sample: events.length > 0 ? events[0] : null
+                });
+            } catch (e) {
+                allEvents.push({
+                    eventName: eventName,
+                    error: e.message
+                });
+            }
+        }
+        
+        res.json({
+            totalEvents: allEvents.reduce((sum, evt) => sum + (evt.count || 0), 0),
+            events: allEvents
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 
