@@ -3,10 +3,10 @@
 **AI-Powered Spice Purity Detection & Blockchain-Backed Traceability**
 
 ### Team Arrakis
-- Devadathan (ML + Arduino Integration)
+- Devadathan (FrontEnd+Backend integration)
 - Miyan (Blockchain)
 - Rinjan (Blockchain)
-- Mathew (Sensors)
+- Mathew (Sensors,ML)
 
 ---
 
